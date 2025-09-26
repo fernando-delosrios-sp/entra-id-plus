@@ -6,6 +6,8 @@ import {
     StdAccountListOutput,
     StdAccountReadAfterHandler,
     StdAccountReadOutput,
+    StdAccountUpdateAfterHandler,
+    StdAccountUpdateOutput,
 } from '@sailpoint/connector-sdk'
 import { operations, setAccountAttribute } from './operations'
 import { getLogger } from './utils'
@@ -44,7 +46,24 @@ export const connectorCustomizer = async () => {
         return output
     }
 
+    const stdAccountUpdateAfterHandler: StdAccountUpdateAfterHandler = async (
+        context: Context,
+        output: StdAccountUpdateOutput
+    ) => {
+        logger.debug('stdAccountUpdateAfterHandler: ' + JSON.stringify(output ?? {}))
+        for (const [attribute, operation] of Object.entries(operations)) {
+            logger.debug(`Running operation for attribute ${attribute}`)
+            const value = await operation(output)
+            setAccountAttribute(output, attribute, value)
+        }
+
+        logger.debug('stdAccountUpdateAfterHandler: ' + JSON.stringify(output ?? {}))
+
+        return output
+    }
+
     return createConnectorCustomizer()
         .afterStdAccountList(stdAccountListAfterHandler)
         .afterStdAccountRead(stdAccountReadAfterHandler)
+        .afterStdAccountUpdate(stdAccountUpdateAfterHandler)
 }
