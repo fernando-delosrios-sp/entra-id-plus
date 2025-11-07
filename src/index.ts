@@ -1,50 +1,35 @@
 import {
     Context,
     createConnectorCustomizer,
-    readConfig,
-    StdAccountListAfterHandler,
-    StdAccountListOutput,
-    StdAccountReadAfterHandler,
-    StdAccountReadOutput,
+    readConfig
 } from '@sailpoint/connector-sdk'
 import { operations, setAccountAttribute } from './operations'
 import { getLogger } from './utils'
 import { Config } from './model/config'
+import { AccountObject } from './model/operation'
 
 // Connector customizer must be exported as module property named connectorCustomizer
 export const connectorCustomizer = async () => {
     const config: Config = await readConfig()
     const logger = getLogger(config.spConnDebugLoggingEnabled)
-    const stdAccountListAfterHandler: StdAccountListAfterHandler = async (
-        context: Context,
-        output: StdAccountListOutput
-    ) => {
-        logger.debug('stdAccountListAfterHandler: ' + JSON.stringify(output ?? {}))
+
+    const runOperations = async (context: Context, output: AccountObject) => {
         for (const [attribute, operation] of Object.entries(operations)) {
-            logger.debug(`Running operation for attribute ${attribute}`)
+            logger.debug(`${context.commandType} - Running operation for attribute ${attribute}`)
             const value = await operation(output)
             setAccountAttribute(output, attribute, value)
         }
-
-        return output
-    }
-
-    const stdAccountReadAfterHandler: StdAccountReadAfterHandler = async (
-        context: Context,
-        output: StdAccountReadOutput
-    ) => {
-        logger.debug('stdAccountReadAfterHandler: ' + JSON.stringify(output ?? {}))
-        logger.debug(JSON.stringify(context))
-        for (const [attribute, operation] of Object.entries(operations)) {
-            logger.debug(`Running operation for attribute ${attribute}`)
-            const value = await operation(output)
-            setAccountAttribute(output, attribute, value)
-        }
-
         return output
     }
 
     return createConnectorCustomizer()
-        .afterStdAccountList(stdAccountListAfterHandler)
-        .afterStdAccountRead(stdAccountReadAfterHandler)
+        .afterStdAccountList(runOperations)
+        .afterStdAccountRead(runOperations)
+        .afterStdAccountCreate(runOperations)
+        .afterStdAccountUpdate(runOperations)
+        .afterStdAccountDelete(runOperations)
+        .afterStdAccountDisable(runOperations)
+        .afterStdAccountEnable(runOperations)
+        .afterStdAccountUnlock(runOperations)
+        .afterStdAccountChangePassword(runOperations)
 }
