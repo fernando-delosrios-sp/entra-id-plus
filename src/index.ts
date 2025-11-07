@@ -13,7 +13,7 @@ export const connectorCustomizer = async () => {
     const config: Config = await readConfig()
     const logger = getLogger(config.spConnDebugLoggingEnabled)
 
-    const runOperations = async (context: Context, output: AccountObject) => {
+    const runOperations = async <T extends AccountObject>(context: Context, output: T): Promise<T> => {
         for (const [attribute, operation] of Object.entries(operations)) {
             logger.debug(`${context.commandType} - Running operation for attribute ${attribute}`)
             const value = await operation(output)
@@ -27,9 +27,8 @@ export const connectorCustomizer = async () => {
         .afterStdAccountRead(runOperations)
         .afterStdAccountCreate(runOperations)
         .afterStdAccountUpdate(runOperations)
-        .afterStdAccountDelete(runOperations)
         .afterStdAccountDisable(runOperations)
         .afterStdAccountEnable(runOperations)
         .afterStdAccountUnlock(runOperations)
-        .afterStdAccountChangePassword(runOperations)
+        .afterStdChangePassword(runOperations)
 }
